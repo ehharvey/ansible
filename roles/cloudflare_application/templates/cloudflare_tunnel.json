@@ -1,0 +1,4 @@
+{
+    "name": "{{ name }}",
+    "tunnel_secret": "{{ cloudflare_tunnel_secret }}"
+}

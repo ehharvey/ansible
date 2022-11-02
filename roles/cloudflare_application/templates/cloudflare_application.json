@@ -1,0 +1,5 @@
+{
+    "domain": "{{ web_address }}",
+    "name": "{{ name }}",
+    "type": "{{ type }}"
+}

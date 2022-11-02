@@ -1,0 +1,26 @@
+#cloud-config
+users:
+  - name: {{ maintenance_user }}
+    ssh_import_id:
+      - gh: {{ github_username }}
+    lock_passwd: True
+    sudo: ALL=(ALL) NOPASSWD:ALL
+
+packages:
+  - freeipa-server 
+  - freeipa-server-dns 
+  - freeipa-client
+
+runcmd:
+  -   [
+    'sudo', 'ipa-server-install', '--setup-dns',
+    '--ds-password {{ ipa_server.password }}',
+    '--admin_password {{ ipa_server.password }}'
+  ]
+
+network:
+  addresses: {{ ipa_server.ip }}
+  
+hostname: {{ ipa_server.fqdn | split('.') | first }}
+fqdn: {{ ipa_server.fqdn }}
+prefer_fqdn_over_hostname: true

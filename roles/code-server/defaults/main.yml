@@ -1,0 +1,3 @@
+---
+# defaults file for roles/code-server
+vscode_user: vscode

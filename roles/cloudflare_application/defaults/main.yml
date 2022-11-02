@@ -1,0 +1,5 @@
+---
+# defaults file for roles/cloudflare_application
+state: present
+cloudflare_user: cloudflare
+cloudflared_config_dir: "/home/{{ cloudflare_user }}/.cloudflared/"

@@ -1,0 +1,12 @@
+---
+- name: test
+  hosts: localhost
+  connection: local
+  vars:
+    ansible_host: localhost
+  tasks:
+    - name: test
+      debug: 
+        msg: "'Hello, {{ world | trim }}'"
+      vars:
+        world: "123 "

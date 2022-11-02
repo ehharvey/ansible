@@ -1,0 +1,15 @@
+---
+network:
+  ethernets:
+    eth0:
+      nameservers:
+        addresses: 
+          - {{ ipa_server.ip }}
+          - 8.8.8.8
+          - 8.8.4.4
+      dhcp4: yes
+      dhcp6: no
+      match: 
+        name: "e*"
+      set-name: eth0
+  version: 2

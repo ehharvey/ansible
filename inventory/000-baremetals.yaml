@@ -1,0 +1,18 @@
+# If you update this file's name, be sure to update the var baremetal_filename!
+
+all:
+  hosts:
+    # Define ALL baremetal hosts here
+    baremetal0:
+    baremetal1:
+    baremetal2:
+  children:
+  # Edit to (re)provision a baremetal host
+  # You must install Ubuntu Server, and import your
+  # GitHub account SSH pubkey
+    unprovisioned_baremetals:
+      hosts:
+        # baremetal0:
+        # baremetal1:
+        # baremetal2:
+        baremetaltest:

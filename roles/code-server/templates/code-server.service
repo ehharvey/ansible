@@ -1,0 +1,13 @@
+[Unit]
+Description=Code
+Documentation=Code Server
+After=network.target
+
+[Service]
+Type=simple
+User={{ username }}
+ExecStart=code-server --bind-addr localhost:8080 --auth none
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,20 @@
+---
+- name: Configure tailscale
+  hosts: unprovisioned_baremetals
+  roles:
+    - tailscale
+  vars:
+    ansible_host: 192.168.46.205
+
+- name: Configure ZFS pools on capable devices
+  hosts: unprovisioned_baremetals
+  roles:
+    - role: zfs
+      when: zfs is defined
+
+- name: Provision initial machine
+  hosts: unprovisioned_baremetals
+  roles:
+    - onboarding
+    - lxd     
+    

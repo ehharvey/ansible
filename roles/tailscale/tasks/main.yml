@@ -1,0 +1,31 @@
+---
+# tasks file for roles/tailscale
+- name: Use Tailscale script
+  ansible.builtin.shell: curl -fsSL https://tailscale.com/install.sh | sh
+  become: True
+
+- name: Set up Tailscale
+  ansible.builtin.command: "tailscale up --authkey {{ tailscale_authkey }}"
+  become: true
+
+- name: Retrieve Tailscale IP
+  ansible.builtin.shell: "tailscale ip | head -n 1"
+  register: tailscale_ip
+
+
+- name: Set ansible_host
+  ansible.builtin.set_fact:
+    ansible_host: "{{ tailscale_ip.stdout }}"
+
+
+- name: Register ansible_host with pass
+  ansible.builtin.shell: "echo {{ ansible_host }} | pass insert hosts/{{ inventory_hostname }}/ansible_host -e -f"
+  delegate_to: localhost
+
+- name: Add SSH pubkey to known_hosts
+  ansible.builtin.command: "ssh-keyscan -H {{ ansible_host }} >> ~/.ssh/known_hosts"
+  delegate_to: localhost
+  throttle: 1  
+
+- name: Refresh Ansible Connection
+  ansible.builtin.meta: reset_connection

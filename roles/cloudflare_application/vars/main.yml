@@ -1,0 +1,3 @@
+---
+# vars file for roles/cloudflare_application
+tunnel_id: "{{ cloudflare_tunnel_response.json.result.id }}"

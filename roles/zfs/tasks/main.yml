@@ -1,0 +1,20 @@
+---
+# tasks file for roles/zfs
+- name: Install zfs
+  ansible.builtin.package:
+    name: zfsutils-linux
+    state: present
+  become: true
+
+- name: Create ZFS pool
+  ansible.builtin.command: "zpool create main raidz {{ disks }}"
+  become: True
+  when: 
+    - zfs.disks is defined
+  vars:
+    disks: "{{ zfs.disks | join(' ') }}"
+
+
+- name: Import existing pool
+  ansible.builtin.command: zpool import
+  become: true

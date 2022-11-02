@@ -1,0 +1,61 @@
+---
+# tasks file for roles/onboarding
+- name: Enable EPEL repository (RHEL)
+  ansible.builtin.dnf:
+    name: epel-release
+    state: present
+  when: ansible_distribution_file_variety == 'RedHat'
+  become: true
+  # Needed for UFW
+
+- name: Install netplan (RHEL)
+  ansible.builtin.package:
+    name: netplan
+    state: present
+  when: ansible_distribution_file_variety == 'RedHat'
+  become: True
+
+- name: Install UFW
+  ansible.builtin.package: 
+    name: ufw
+    state: present
+  become: true
+
+- name: Configure the kernel to keep connections alive when enabling the firewall
+  sysctl:
+    name: net.netfilter.nf_conntrack_tcp_be_liberal
+    value: 1
+    state: present
+    sysctl_set: yes
+    reload: yes
+  become: true
+
+- name: Configure default firewall-deny by default
+  ansible.builtin.command: ufw default deny incoming
+  become: true
+
+- name: Allow Incoming SSH connections
+  ansible.builtin.command: "ufw allow in on tailscale0 to {{ ansible_host }} port 22 proto tcp"
+  become: true
+
+- name: Enable ufw
+  community.general.ufw: 
+    state: enabled
+  become: true
+
+- name: Reload firewall
+  ansible.builtin.command: ufw reload
+  become: true
+
+- name: Configure hostname
+  ansible.builtin.hostname: 
+    name: "{{ fqdn }}"
+  become: true
+
+- name: Configure timezone
+  community.general.timezone:
+    name: "{{ timezone }}"
+  become: true
+
+- name: Refresh Ansible Connection
+  ansible.builtin.meta: reset_connection

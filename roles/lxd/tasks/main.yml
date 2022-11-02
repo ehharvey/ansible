@@ -1,0 +1,39 @@
+---
+# tasks file for roles/lxd
+- name: Install snapd
+  ansible.builtin.package:
+    name: snapd
+    state: present
+  become: true
+  
+- name: Install LXD
+  community.general.snap:
+    name: lxd
+    state: present
+  become: true
+
+- name: Init LXD with ZFS pool
+  ansible.builtin.command: "lxd init --auto --storage-backend zfs --storage-pool main"
+  become: true
+  when: zfs is defined
+
+- name: Init LXD with ZFS loopback
+  ansible.builtin.command: "lxd init --auto --storage-backend zfs --storage-create-loop 10" # TODO: change to 100
+  become: true
+  when: zfs is not defined
+
+- name: Configure UFW to allow LXD to work
+  ansible.builtin.command: "{{ item }}"
+  become: True
+  loop:
+    - ufw allow in on lxdbr0
+    - ufw route allow in on lxdbr0 # TODO: Check how to reduce permissions (can I ssh into lxc host)
+    - ufw reload
+
+- name: Set /sys/kernel/slab/ to permissions 700
+  ansible.builtin.file:
+    path: /sys/kernel/slab/
+    state: directory
+    mode: 700
+  become: true
+  # Done for security

@@ -1,0 +1,130 @@
+---
+# tasks file for roles/cloudflare_application
+- name: Cleanup
+  ansible.builtin.import_tasks: "absent.yaml"
+
+- name: Set cloudflare tunnel secret
+  ansible.builtin.set_fact:
+      tunnel_secret: "{{ lookup('ansible.builtin.password', '/dev/null chars=ascii_letters') }}"
+
+- name: Create cloudflare user
+  ansible.builtin.user:
+    name: "{{ cloudflare_user }}"
+    state: present
+  become: true
+
+- name: Configure CloudFlare
+  block:
+  - name: Create Tunnel
+    ansible.builtin.uri:
+      body: "{{ lookup('ansible.builtin.template', 'cloudflare_tunnel.json')  }}"
+      body_format: json
+      url: https://api.cloudflare.com/client/v4/accounts/{{ cloudflare_account }}/cfd_tunnel
+      method: POST
+      headers:
+        Authorization: "Bearer {{ cloudflare_api_token }}" 
+    register: cloudflare_tunnel_response
+    vars:
+      name: "{{ application_name }}"
+      cloudflare_tunnel_secret: "{{ tunnel_secret }}"
+
+
+  - name: Create Application
+    ansible.builtin.uri:
+      body: "{{ lookup('ansible.builtin.template', 'cloudflare_application.json' ) }}"
+      body_format: json
+      url: https://api.cloudflare.com/client/v4/zones/{{ cloudflare_zone }}/access/apps
+      method: POST
+      headers:
+        Authorization: "Bearer {{ cloudflare_api_token }}"
+    register: cloudflare_application_response
+    vars:
+      name: "{{ application_name }}"
+      type: "self_hosted"
+    failed_when: cloudflare_application_response.status != 201
+
+
+  - name: Configure application to allow user
+    ansible.builtin.uri:
+      body: "{{ lookup('ansible.builtin.template', 'cloudflare_access.json') }}"
+      body_format: json
+      url: https://api.cloudflare.com/client/v4/zones/{{ cloudflare_zone }}/access/apps/{{ cloudflare_application_response.json.result.uid }}/policies
+      method: POST
+      headers:
+        Authorization: "Bearer {{ cloudflare_api_token }}"
+    loop: "{{ allowed_emails }}"
+    vars:
+      name: "{{ item | split('@') | first }}"
+      email: "{{ item }}"
+    failed_when: cloudflare_application_response.status != 201
+      # cloudflare_application_response.result.json.result.uid
+      
+
+
+  - name: Create DNS record pointing tunnel to application
+    ansible.builtin.uri:
+      body: "{{ lookup('ansible.builtin.template', 'cloudflare_dns.json') }}"
+      body_format: json
+      url: "https://api.cloudflare.com/client/v4/zones/{{ cloudflare_zone }}/dns_records"
+      method: POST
+      headers:
+        Authorization: "Bearer {{ cloudflare_api_token }}"
+    vars:
+      name: "{{ web_address }}"
+      content: "{{ tunnel_id }}.cfargotunnel.com"
+
+
+  - name: Install Cloudflared
+    ansible.builtin.shell: "wget -q https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb && dpkg -i cloudflared-linux-amd64.deb"
+    become: true
+
+
+  - name: Create cloudflare config directory
+    ansible.builtin.file:
+      path: "{{ cloudflared_config_dir }}"
+      state: directory
+      owner: cloudflare
+      group: cloudflare
+      mode: '700'
+    become: true
+
+
+  - name: Create Tunnel config yaml
+    ansible.builtin.template:
+      src: "{{ item.src }}"
+      dest: "{{ cloudflared_config_dir }}{{ item.dest }}"
+      owner: cloudflare
+      group: cloudflare
+      mode: '600'
+    become: true
+    loop:
+      - src: cloudflare_tunnel.yaml
+        dest: config.yaml
+      - src: credentials_file.json
+        dest: "{{ cloudflare_tunnel_response.json.result.id }}.json"
+    vars:
+      name: "{{ tunnel_id }}"
+      AccountTag: "{{ cloudflare_account }}"
+      TunnelSecret: "{{ tunnel_secret }}"
+      TunnelId: "{{ tunnel_id }}"
+
+
+  - name: Create cloudflare service
+    ansible.builtin.template:
+      src: "cloudflare.service"
+      dest: "/etc/systemd/system/cloudflare.service"
+    become: true
+    vars:
+      username: cloudflare
+
+
+  - name: Enable and start cloudflare service
+    ansible.builtin.systemd:
+      name: "cloudflare.service"
+      enabled: true
+      state: started
+    become: true
+  when: state == 'present'
+  rescue:
+    - name: Cleanup
+      ansible.builtin.import_tasks: "absent.yaml"

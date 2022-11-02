@@ -1,0 +1,33 @@
+---
+timezone: "America/Toronto"
+
+domain:
+  root: emilharvey.ca
+  machine_subdomain: internal
+
+machine_domain: "{{ domain.machine_subdomain }}.{{ domain.root }}"
+fqdn: "{{ inventory_hostname }}.{{ machine_domain }}"
+
+ipa_server:
+  ip: "{{ lookup('ansible.builtin.passwordstore', 'ipa/ip') }}"
+  realm: "{{ machine_domain | upper }}"
+  hostname: ipa
+  password: "{{ lookup('ansible.builtin.passwordstore', 'ipa/password') }}"
+
+  
+
+ansible_user: maintenance
+ssh_pubkeys: "{{ lookup('ansible.builtin.url', 'https://github.com/ehharvey.keys', wantlist=True)  }}"
+ansible_host: "{{ lookup('ansible.builtin.passwordstore', 'hosts/' + inventory_hostname + '/ansible_host') }}"
+
+release_name: jammy
+
+# Secrets
+tailscale_authkey: "{{ lookup('ansible.builtin.passwordstore', 'tailscale/authkey' ) }}"
+lxd_trust_password: "{{ lookup('ansible.builtin.passwordstore', 'lxd/trust_password' }}"
+
+
+cloudflare:
+  api_token: "{{ lookup('ansible.builtin.passwordstore', 'cloudflare/api_token') }}"
+  zone: "{{ lookup('ansible.builtin.passwordstore', 'cloudflare/zone') }}"
+  account: "{{ lookup('ansible.builtin.passwordstore', 'cloudflare/account') }}"

@@ -1,0 +1,5 @@
+---
+plugin: ansible.builtin.constructed
+strict: True
+groups:
+  baremetals: inventory_hostname.startswith('baremetal')

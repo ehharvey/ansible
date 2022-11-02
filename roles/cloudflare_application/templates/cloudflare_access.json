@@ -1,0 +1,11 @@
+{
+    "name": "{{ name }}",
+    "include": [
+        {
+            "email": {
+                "email": "{{ email }}"
+            }
+        }
+    ],
+    "decision": "allow"
+}

@@ -1,0 +1,7 @@
+{
+    "type": "CNAME",
+    "name": "{{ name }}",
+    "content": "{{ content }}",
+    "ttl": 1,
+    "proxied": true
+}

@@ -1,0 +1,13 @@
+[Unit]
+Description=Cloudflare Tunnel
+Documentation=Cloudflare Tunnel
+After=network.target
+
+[Service]
+Type=simple
+User={{ username }}
+ExecStart=cloudflared tunnel run {{ tunnel_id }}
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

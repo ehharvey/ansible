@@ -1,0 +1,9 @@
+---
+# defaults file for roles/tailscale
+tailscale_key_mapping: >
+  {{
+    dict(
+      ansible_play_hosts
+      | zip(_tailscale_auth_keys)
+    )
+  }}

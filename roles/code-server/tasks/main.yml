@@ -1,0 +1,28 @@
+---
+# tasks file for roles/code-server
+- name: Ensure code-server user is present
+  ansible.builtin.user:
+    name: "{{ vscode_user }}"
+    state: present
+    password: '!'
+  become: true
+
+- name: Install Code Server
+  ansible.builtin.shell: "curl -fsSL https://code-server.dev/install.sh | sh"
+  become: true
+
+- name: Create code server service
+  ansible.builtin.template:
+    src: "code-server.service"
+    dest: "/etc/systemd/system/code-server.service"
+  become: true
+  vars:
+    username: "{{ vscode_user }}"
+
+
+- name: Enable code server
+  ansible.builtin.systemd:
+    name: "code-server.service"
+    state: started
+    enabled: true
+  become: true

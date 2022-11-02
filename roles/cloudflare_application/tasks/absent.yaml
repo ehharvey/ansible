@@ -1,0 +1,91 @@
+- name: Disable + stop any running cloudflare service
+  ansible.builtin.systemd:
+    name: cloudflare
+    enabled: false
+    state: stopped
+  failed_when: false
+  become: true
+
+
+- name: Delete any cloudflare service
+  ansible.builtin.file:
+    path: "/etc/systemd/system/cloudflare.service"
+    state: absent
+  become: true
+
+
+- name: Retrieve existing Cloudflare Access groups
+  ansible.builtin.uri:
+    url: "https://api.cloudflare.com/client/v4/zones/{{ cloudflare_zone }}/access/apps"
+    body_format: json
+    method: GET
+    headers:
+      Authorization: "Bearer {{ cloudflare_api_token }}" 
+  register: cloudflare_existing_applications
+
+
+- name: Delete existing Cloudflare Access group
+  ansible.builtin.uri:
+    method: DELETE
+    body_format: json
+    url: "https://api.cloudflare.com/client/v4/zones/{{ cloudflare_zone }}/access/apps/{{ uid }}"
+    headers:
+      Authorization: "Bearer {{ cloudflare_api_token }}" 
+  vars:
+    search: "{{ cloudflare_existing_applications.json.result | selectattr('name', '==', application_name) }}"
+    uid: "{{ (search | first).uid }}"
+  when: search
+  register: _temp
+  failed_when: _temp.status != 202
+
+- name: Retrieve existing Cloudflare Tunnels
+  ansible.builtin.uri:
+    body_format: json
+    url: https://api.cloudflare.com/client/v4/accounts/{{ cloudflare_account }}/cfd_tunnel
+    method: GET
+    headers:
+      Authorization: "Bearer {{ cloudflare_api_token }}" 
+  register: cloudflare_existing_tunnels
+  
+
+
+- name: Delete existing Cloudflare Tunnel
+  ansible.builtin.uri:
+    body_format: json
+    url: "https://api.cloudflare.com/client/v4/accounts/{{ cloudflare_account }}/cfd_tunnel/{{ id }}"
+    method: DELETE
+    headers:
+      Authorization: "Bearer {{ cloudflare_api_token }}" 
+  vars:
+    search: "{{ cloudflare_existing_tunnels.json.result | selectattr('name', '==', application_name) }}"
+    id: "{{ (search | first).id }}"
+  when: search
+
+
+- name: Retrieve existing DNS records
+  ansible.builtin.uri:
+    body_format: json
+    url: "https://api.cloudflare.com/client/v4/zones/{{ cloudflare_zone }}/dns_records"
+    method: GET
+    headers:
+      Authorization: "Bearer {{ cloudflare_api_token }}"
+  register: cloudflare_existing_dns
+
+
+- name: Delete existing Cloudflare DNS record
+  ansible.builtin.uri:
+    body_format: json
+    url: "https://api.cloudflare.com/client/v4/zones/{{ cloudflare_zone }}/dns_records/{{ id }}"
+    method: DELETE
+    headers:
+      Authorization: "Bearer {{ cloudflare_api_token }}" 
+  vars:
+    search: "{{ cloudflare_existing_dns.json.result | selectattr('name', '==', web_address | lower) }}"
+    id: "{{ (search | first).id }}"
+  when: search
+
+- name: Cleanup any cloudflare directory
+  ansible.builtin.file:
+    path: "{{ cloudflared_config_dir }}"
+    state: absent
+  become: true
