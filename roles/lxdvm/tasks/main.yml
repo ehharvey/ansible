@@ -1,87 +1,94 @@
 ---
 # tasks file for roles/lxdvm
-- name: Delete any previous VMs
-  ansible.builtin.command: "lxc delete {{ vm_name }} --force"
-  failed_when: false
-  register: result
-  changed_when: result.rc == 0
+- name: Cleanup
+  ansible.builtin.import_tasks: "absent.yaml"
 
-- name: Create VM
-  community.general.lxd_container:
-    name: "{{ vm_name }}"
-    state: started
-    source:
-      type: image
-      mode: pull
-      server: https://cloud-images.ubuntu.com/releases
-      protocol: simplestreams
-      alias: "kinetic"
-    config:
-      limits.memory: "{{ memory }}"
-    type: virtual-machine
-    wait_for_ipv4_addresses: true
+- name: New VM
+  block:
+  - name: Create VM
+    community.general.lxd_container:
+      name: "{{ vm_name }}"
+      state: started
+      source:
+        type: image
+        mode: pull
+        server: https://cloud-images.ubuntu.com/releases
+        protocol: simplestreams
+        alias: "kinetic"
+      config: "{{ lxd.config }}"
+      type: virtual-machine
+      wait_for_ipv4_addresses: true
 
-- name: Wait for VM to be online
-  ansible.builtin.command: "lxc exec {{ vm_name }} -- bash -c 'echo Hello World'"
-  retries: 20
-  delay: 5
-  register: result
-  until: result.rc == 0
-  changed_when: false
-
-- name: Configure container with maintenance account, Tailscale and SSH
-  ansible.builtin.command: "lxc exec {{ vm_name }} -- bash -c '{{ item }}'"
-  loop:
-    - "useradd {{ ansible_user }}"
-    - "passwd -l {{ ansible_user }}"
-    - echo {{ ansible_user }} ALL=\(ALL\) NOPASSWD:ALL >> /etc/sudoers
-    - "mkdir -p /home/{{ ansible_user }}/.ssh"
-    - systemctl enable ssh
-    - systemctl start ssh
-    - echo {{ ssh_pubkeys | join(newline) }} >> /home/{{ ansible_user }}/.ssh/authorized_keys
-    - "chown -R {{ ansible_user }}:{{ ansible_user }} /home/{{ ansible_user }}"
-    - "chmod 700 /home/{{ ansible_user }}/.ssh/"
-    - "chmod 600 /home/{{ ansible_user }}/.ssh/authorized_keys"
-    - curl -fsSL https://tailscale.com/install.sh | sh
-    - "tailscale up --authkey {{ tailscale_authkey }}"
-  vars:
-    newline: "\n"
+  - name: Wait for VM to be online
+    ansible.builtin.command: "lxc exec {{ vm_name }} -- bash -c 'echo Hello World'"
+    retries: 20
+    delay: 5
+    register: result
+    until: result.rc == 0
+    changed_when: false
   
-- name: Retrieve Tailscale IP
-  ansible.builtin.command: "lxc exec {{ vm_name }} -- bash -c 'tailscale ip | head -n 1'"
-  register: tailscale_ip
+  - name: Resize rootfs
+    ansible.builtin.command: "lxc config device override {{ vm_name }} root size={{ size }}"
+    when: size is defined
 
-- name: Register ansible_host with pass
-  ansible.builtin.shell: "echo {{ tailscale_ip.stdout | trim }} | pass insert hosts/{{ hostname }}/ansible_host -e -f"
-  delegate_to: localhost
+  - name: Configure container with maintenance account, Tailscale and SSH
+    ansible.builtin.command: "lxc exec {{ vm_name }} -- bash -c '{{ item }}'"
+    loop:
+      - "useradd {{ ansible_user }}"
+      - "passwd -l {{ ansible_user }}"
+      - echo {{ ansible_user }} ALL=\(ALL\) NOPASSWD:ALL >> /etc/sudoers
+      - "mkdir -p /home/{{ ansible_user }}/.ssh"
+      - systemctl enable ssh
+      - systemctl start ssh
+      - echo {{ ssh_pubkeys | join(newline) }} >> /home/{{ ansible_user }}/.ssh/authorized_keys
+      - "chown -R {{ ansible_user }}:{{ ansible_user }} /home/{{ ansible_user }}"
+      - "chmod 700 /home/{{ ansible_user }}/.ssh/"
+      - "chmod 600 /home/{{ ansible_user }}/.ssh/authorized_keys"
+      - curl -fsSL https://tailscale.com/install.sh | sh
+      - "tailscale up --authkey {{ tailscale_authkey }}"
+    vars:
+      newline: "\n"
+    no_log: true
+    
+  - name: Retrieve Tailscale IP
+    ansible.builtin.command: "lxc exec {{ vm_name }} -- bash -c 'tailscale ip | head -n 1'"
+    register: tailscale_ip
 
-- name: Write new VMs to Ansible Inventory Files
-  ansible.builtin.copy:
-    dest: "./inventory/020-{{ name }}.yaml"
-    content: "{{ inventory_data | to_yaml }}"
-  delegate_to: localhost
-  vars:
-    inventory_data:
-      all:
-        hosts: "{{ { name: {} } }}"
-        children: >-
-          {{
-            {
-              group: {
-                "hosts":
-                {
-                  name: {}
+  - name: Register ansible_host with pass
+    ansible.builtin.shell: "echo {{ tailscale_ip.stdout | trim }} | pass insert hosts/{{ hostname }}/ansible_host -e -f"
+    delegate_to: localhost
+
+  - name: Write new VMs to Ansible Inventory Files
+    ansible.builtin.copy:
+      dest: "{{ inventory_dir }}/inventory/020-{{ name }}.yaml"
+      content: "{{ inventory_data | to_yaml }}"
+    delegate_to: localhost
+    vars:
+      inventory_data:
+        all:
+          hosts: "{{ { name: {} } }}"
+          children: >-
+            {{
+              {
+                group | default(omit): {
+                  "hosts":
+                  {
+                    name: {}
+                  }
                 }
               }
-            }
-          }}
+            }}
 
-- name: Write facts to file
-  ansible.builtin.copy:
-    dest: "./inventory/host_vars/{{ name }}.yaml"
-    content: "{{ facts | to_yaml }}"
-  delegate_to: localhost
+  - name: Write facts to file
+    ansible.builtin.copy:
+      dest: "{{ inventory_dir }}/host_vars/{{ name }}.yaml"
+      content: "{{ facts | to_yaml }}"
+    delegate_to: localhost
+        
       
-    
-- name: Refresh Ansible's inventory
-  ansible.builtin.meta: refresh_inventory
+  - name: Refresh Ansible's inventory
+    ansible.builtin.meta: refresh_inventory
+  when: state | lower == 'present'
+  rescue:
+    - name: Cleanup
+      ansible.builtin.import_tasks: "absent.yaml"

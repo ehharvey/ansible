@@ -1,4 +1,13 @@
 ---
 devs:
-  - email: emil.h.harvey@outlook.com
-    username: eharvey3704
+  - email: "{{ lookup('ansible.builtin.passwordstore', 'project-v/devs/emil/email') }}"
+    username: "{{ lookup('ansible.builtin.passwordstore', 'project-v/devs/emil/username') }}"
+
+  - email: "{{ lookup('ansible.builtin.passwordstore', 'project-v/devs/justin/email') }}"
+    username: "{{ lookup('ansible.builtin.passwordstore', 'project-v/devs/justin/username') }}"
+  
+  - email: "{{ lookup('ansible.builtin.passwordstore', 'project-v/devs/amanuel/email') }}"
+    username: "{{ lookup('ansible.builtin.passwordstore', 'project-v/devs/amanuel/username') }}"
+  
+  - email: "{{ lookup('ansible.builtin.passwordstore', 'project-v/devs/cole/email') }}"
+    username: "{{ lookup('ansible.builtin.passwordstore', 'project-v/devs/cole/username') }}"

@@ -1,0 +1,10 @@
+---
+- name: Update
+  hosts: all
+  tasks:
+    - name: Update
+      ansible.builtin.command: "{{ item }}"
+      become: True
+      loop:
+        - apt update
+        - apt upgrade -y

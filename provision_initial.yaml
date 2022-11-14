@@ -4,12 +4,16 @@
   roles:
     - tailscale
   vars:
-    ansible_host: 192.168.46.205
+    static_ips:
+      baremetal0: # Set static IP here
+    ansible_host: "{{ static_ips[inventory_hostname] }}"
 
 - name: Configure ZFS pools on capable devices
   hosts: unprovisioned_baremetals
-  roles:
-    - role: zfs
+  tasks:
+    - name: Configure ZFS
+      ansible.builtin.include_role:
+        name: zfs
       when: zfs is defined
 
 - name: Provision initial machine

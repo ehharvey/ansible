@@ -1,4 +1,4 @@
 ---
 # vars file for roles/lxdvm
-hostname: "{{ name }}"
+hostname: "{{ lxd.name }}"
 vm_name: "{{ hostname  | replace('.', '-')  }}"

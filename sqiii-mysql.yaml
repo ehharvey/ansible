@@ -1,0 +1,36 @@
+---
+- name: Create MySQL VM
+  hosts: baremetal1
+  tasks:
+  - name: Create MySQL VM
+    ansible.builtin.include_role: 
+      name: lxdvm
+    vars:
+      lxd:
+        name: sqiii-mysql
+        config:
+          limits.memory: 1GB
+        group: "sqiii"
+  
+
+- name: Onboard VM
+  hosts: sqiii-mysql
+  roles:
+    - onboarding
+  vars:
+    ansible_ssh_common_args: "-o StrictHostKeyChecking=no"
+  tasks:
+    - name: Install MySQL
+      ansible.builtin.package:
+        name: mysql-server
+        state: present
+      become: true
+
+- name: Configure MySQL
+  hosts: sqiii-mysql
+  collections:
+    - devsec.hardening
+  roles:
+    - mysql_hardening
+  tasks:
+    

@@ -2,3 +2,5 @@
 # defaults file for roles/lxdvm
 distribution: "ubuntu/20.04"
 memory: 1GB
+facts: {}
+state: present

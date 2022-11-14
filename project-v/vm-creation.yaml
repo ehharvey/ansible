@@ -1,0 +1,20 @@
+---
+- name: Create developer VMs
+  hosts: "baremetal1"
+  vars_files: 
+    - "facts.yaml"
+  tasks:
+    - name: Create Developer VMS
+      ansible.builtin.include_role: 
+        name: ../roles/lxdvm
+      vars:
+        name: "{{ vm_config.username }}-projectv-dev"
+        memory: 1GB
+        group: "projectv-devs"
+        facts:
+          dev_email: "{{ vm_config.email }}"
+          dev_username: "{{ vm_config.username }}"
+        state: present
+      loop: "{{ devs }}"
+      loop_control:
+        loop_var: vm_config

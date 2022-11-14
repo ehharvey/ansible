@@ -15,9 +15,11 @@
   when: ansible_distribution_file_variety == 'RedHat'
   become: True
 
-- name: Install UFW
+- name: Install Needed packages
   ansible.builtin.package: 
-    name: ufw
+    name: 
+      - ufw
+      - acl
     state: present
   become: true
 
@@ -49,7 +51,7 @@
 
 - name: Configure hostname
   ansible.builtin.hostname: 
-    name: "{{ fqdn }}"
+    name: "{{ inventory_hostname }}"
   become: true
 
 - name: Configure timezone

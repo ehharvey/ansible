@@ -1,3 +1,4 @@
 ---
 # defaults file for roles/code-server
-vscode_user: vscode
+vscode_user: code
+open_dir: ""

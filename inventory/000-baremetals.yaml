@@ -5,14 +5,11 @@ all:
     # Define ALL baremetal hosts here
     baremetal0:
     baremetal1:
-    baremetal2:
   children:
   # Edit to (re)provision a baremetal host
   # You must install Ubuntu Server, and import your
   # GitHub account SSH pubkey
     unprovisioned_baremetals:
       hosts:
-        # baremetal0:
-        # baremetal1:
-        # baremetal2:
-        baremetaltest:
+        # baremetal0: # Provisioned 2022-11-03
+        # baremetal1: # Provisioned 2022-11-03

@@ -1,7 +1,0 @@
-all:
-  children:
-    projectv-devs:
-      hosts:
-        eharvey3704: {}
-  hosts:
-    eharvey3704: {}

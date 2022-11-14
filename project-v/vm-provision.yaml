@@ -1,0 +1,72 @@
+---
+- name: Onboard new VMs
+  hosts: "projectv-devs"
+  vars:
+    ansible_ssh_common_args: "-o StrictHostKeyChecking=no"
+  roles:
+    - onboarding
+
+- name: Provision developer VMs
+  hosts: "projectv-devs"
+  roles:
+    - role: code-server # Creates user code
+      vars:
+        open_dir: Attendance
+    - role: cloudflare_application
+      vars:
+        allowed_emails: 
+          - "{{ dev_email }}"
+          - "{{ github_email }}"
+        web_address: "{{ inventory_hostname }}.{{ domain.root }}"
+        local_port: "8080"
+        application_name: "{{ inventory_hostname }}"
+        cloudflare_zone: "{{ cloudflare.zone }}"
+        cloudflare_api_token: "{{ cloudflare.api_token }}"
+        cloudflare_account: "{{ cloudflare.account }}"
+  tasks:
+    - name: Install required projects for dev
+      ansible.builtin.package:
+        name:
+          - python3-pip
+          - python3-pip-whl
+          - python3-venv
+          - git
+        state: present
+      become: true
+
+
+    - name: Remove any lingering repos
+      file:
+        state: "{{ item }}"
+        path: "/home/code/Attendance/"
+        mode: '0777'
+      loop:
+        - absent
+        - directory
+      become: true
+      become_user: code
+    
+
+    - name: change coder user shell to bash 
+      become: true
+      user:
+        name: "code"
+        shell: /bin/bash
+    
+
+    - name: Clone repo
+      ansible.builtin.shell: >-
+        git clone https://github.com/CSCN73030-projectv-group9/Attendance.git
+        /home/code/Attendance
+      become: true
+      become_user: code
+    
+    - name: Install GitHub CLI
+      ansible.builtin.shell: |
+        type -p curl >/dev/null || sudo apt install curl -y
+        curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg \
+        && sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg \
+        && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
+        && sudo apt update \
+        && sudo apt install gh -y
+      become: true

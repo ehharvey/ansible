@@ -56,9 +56,7 @@
     vars:
       name: "{{ item | split('@') | first }}"
       email: "{{ item }}"
-    failed_when: cloudflare_application_response.status != 201
-      # cloudflare_application_response.result.json.result.uid
-      
+    failed_when: cloudflare_application_response.status != 201      
 
 
   - name: Create DNS record pointing tunnel to application
@@ -124,7 +122,7 @@
       enabled: true
       state: started
     become: true
-  when: state == 'present'
+  when: state | lower == 'present'
   rescue:
     - name: Cleanup
       ansible.builtin.import_tasks: "absent.yaml"

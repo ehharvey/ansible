@@ -1,0 +1,37 @@
+---
+- name: Delete Cloudflare records
+  hosts: "projectv-devs"
+  roles:
+    - role: cloudflare_application
+      vars:
+        allowed_emails: 
+          - "{{ dev_email }}"
+          - "{{ github_email }}"
+        web_address: "{{ inventory_hostname }}.{{ domain.root }}"
+        local_port: "8080"
+        application_name: "{{ inventory_hostname }}"
+        cloudflare_zone: "{{ cloudflare.zone }}"
+        cloudflare_api_token: "{{ cloudflare.api_token }}"
+        cloudflare_account: "{{ cloudflare.account }}"
+        state: absent
+
+- name: Create developer VMs
+  hosts: "baremetal1"
+  vars_files: 
+    - "facts.yaml"
+  tasks:
+    - name: Create Developer VMS
+      ansible.builtin.include_role: 
+        name: ../roles/lxdvm
+      vars:
+        name: "{{ vm_config.username }}-projectv-dev"
+        memory: 1GB
+        group: "projectv-devs"
+        facts:
+          dev_email: "{{ vm_config.email }}"
+          dev_username: "{{ vm_config.username }}"
+        state: absent
+      loop: "{{ devs }}"
+      loop_control:
+        loop_var: vm_config
+  

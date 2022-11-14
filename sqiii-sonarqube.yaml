@@ -1,0 +1,123 @@
+---
+- name: Create SonarQube VM
+  hosts: baremetal1
+  vars_files: 
+    - "./project-v/facts.yaml"
+  tasks:
+    - name: SonarQube VM
+      ansible.builtin.include_role: 
+        name: lxdvm
+      vars:
+        name: sqiii-sonarqube
+        memory: 4GB
+        group: "sqiii"
+
+
+- name: Provision SonarQube VM
+  hosts: sqiii-sonarqube
+  roles:
+    - onboarding
+  vars:
+    sonarqube_user: sonarqube
+    sonarqube_password: "{{ lookup('ansible.builtin.password', '/dev/null chars=ascii_lowercase') }}"
+    sonarqube_url: https://binaries.sonarsource.com/Distribution/sonarqube/sonarqube-9.7.1.62043.zip
+  tasks:
+    - name: Install JAVA
+      ansible.builtin.package:
+        name: openjdk-11-jdk
+        state: present
+      become: true
+    
+    - name: Download SonarQube
+      ansible.builtin.get_url:
+        url: "{{ sonarqube_url }}"
+        dest: "./sonarqube.zip"
+      delegate_to: localhost
+      run_once: true
+    
+    - name: Create sonarqube user
+      ansible.builtin.user:
+        name: "{{ sonarqube_user }}"
+        home: "/sonarqube/"
+        password: "!"
+        create_home: true
+        system: true
+        state: present
+      become: true
+
+    - name: Create sonarqube installation directory
+      ansible.builtin.file:
+        path: "/sonarqube/"
+        state: directory
+        owner: "{{ sonarqube_user }}"
+        group: "{{ sonarqube_user }}"
+      become: true
+
+    - name: Unzip file
+      ansible.builtin.unarchive:
+        src: "./sonarqube.zip"
+        dest: "./"
+        list_files: true
+      delegate_to: localhost
+      register: unzip
+    
+    - name: Copy installation over to remote host
+      ansible.posix.synchronize:
+        src: "./{{ unzip.files | first }}" # Unzip has 1 directory
+        dest: "/sonarqube/"
+        recursive: true
+      become: true
+      become_user: "{{ sonarqube_user }}"
+    
+    - name: Configure SonarQube configuration
+      ansible.builtin.copy:
+        dest: "/sonarqube/conf/sonar.properties"
+        content: |
+          sonar.embeddedDatabase.port=9092  
+          sonar.search.javaOpts=-Xmx512m -Xms512m -XX:+HeapDumpOnOutOfMemoryError
+          sonar.web.host=localhost
+          sonar.web.port=9000
+      become: true
+      become_user: "{{ sonarqube_user }}"
+    
+    - name: Create SystemD Service
+      ansible.builtin.copy:
+        dest: "/etc/systemd/system/sonarqube.service"
+        content: |
+          [Unit]
+          Description=SonarQube service
+          After=syslog.target network.target
+
+          [Service]
+          Type=forking
+          ExecStart=/sonarqube/bin/linux-x86-64/sonar.sh start
+          ExecStop=/sonarqube/bin/linux-x86-64/sonar.sh stop
+          User={{ sonarqube_user }}
+          Group={{ sonarqube_user }}
+          Restart=always
+          LimitNOFILE=131072
+          LimitNPROC=8192
+
+          [Install]
+          WantedBy=multi-user.target
+      become: true
+    
+    - name: Start SonarQube
+      ansible.builtin.systemd:
+        name: "sonarqube.service"
+        state: started
+        enabled: true
+      become: True
+    
+    - name: Configure remote access
+      ansible.builtin.include_role: 
+        name: cloudflare_application
+      vars:
+        allowed_emails: 
+          - emil.h.harvey@outlook.com
+        web_address: "{{ inventory_hostname }}.{{ domain.root }}"
+        local_port: "9000"
+        application_name: "{{ inventory_hostname }}"
+        cloudflare_zone: "{{ cloudflare.zone }}"
+        cloudflare_api_token: "{{ cloudflare.api_token }}"
+        cloudflare_account: "{{ cloudflare.account }}"

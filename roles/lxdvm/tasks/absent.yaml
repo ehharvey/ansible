@@ -1,0 +1,14 @@
+- name: Delete any previous VMs
+  ansible.builtin.command: "lxc delete {{ vm_name }} --force"
+  failed_when: false
+  register: result
+  changed_when: result.rc == 0
+
+- name: Delete any lingering inventory files
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  delegate_to: localhost
+  loop:
+    - "./inventory/020-{{ lxd.name }}.yaml"
+    - "./inventory/host_vars/{{ lxd.name }}.yaml"

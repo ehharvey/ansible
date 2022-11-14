@@ -1,0 +1,44 @@
+---
+- name: Create VM for Ansible
+  hosts: baremetal0
+  tasks:
+    - name: VM for ansible
+      ansible.builtin.include_role: 
+        name: lxdvm
+      vars:
+        name: ansible
+        memory: 1GB
+        group: "admin"
+
+- name: Provision Ansible VM
+  hosts: ansible
+  roles:
+    - role: code-server
+    - role: cloudflare_application
+      vars:
+        allowed_emails: 
+          - "{{ github_email }}"
+        web_address: "{{ inventory_hostname }}.{{ domain.root }}"
+        local_port: "8080"
+        application_name: "{{ inventory_hostname }}"
+        cloudflare_zone: "{{ cloudflare.zone }}"
+        cloudflare_api_token: "{{ cloudflare.api_token }}"
+        cloudflare_account: "{{ cloudflare.account }}"
+  tasks:
+    - name: Install needed Python packages
+      ansible.builtin.package:
+        name:
+          - python3-pip
+          - python3-pip-whl
+        state: present
+      become: true
+    
+    - name: Install GitHub CLI
+      ansible.builtin.shell: |
+        type -p curl >/dev/null || sudo apt install curl -y
+        curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg \
+        && sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg \
+        && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
+        && sudo apt update \
+        && sudo apt install gh -y
+      become: true

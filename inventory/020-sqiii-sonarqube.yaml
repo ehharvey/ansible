@@ -1,0 +1,7 @@
+all:
+  children:
+    sqiii:
+      hosts:
+        sqiii-sonarqube: {}
+  hosts:
+    sqiii-sonarqube: {}

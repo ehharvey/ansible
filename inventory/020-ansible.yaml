@@ -1,0 +1,7 @@
+all:
+  children:
+    admin:
+      hosts:
+        ansible: {}
+  hosts:
+    ansible: {}
