@@ -5,6 +5,7 @@ all:
     # Define ALL baremetal hosts here
     baremetal0:
     baremetal1:
+    baremetal2:
   children:
   # Edit to (re)provision a baremetal host
   # You must install Ubuntu Server, and import your

@@ -8,7 +8,7 @@ domain:
 ansible_user: maintenance
 ssh_pubkeys: "{{ lookup('ansible.builtin.url', 'https://github.com/ehharvey.keys', wantlist=True)  }}"
 ansible_host: "{{ lookup('ansible.builtin.passwordstore', 'hosts/' + inventory_hostname + '/ansible_host') }}"
-github_email: '{{ lookup('ansible.builtin.passwordstore', 'github_email') }}'
+github_email: "{{ lookup('ansible.builtin.passwordstore', 'github_email') }}"
 
 release_name: jammy
 

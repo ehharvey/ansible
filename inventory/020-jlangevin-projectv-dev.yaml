@@ -1,0 +1,7 @@
+all:
+  children:
+    projectv-devs:
+      hosts:
+        jlangevin-projectv-dev: {}
+  hosts:
+    jlangevin-projectv-dev: {}

@@ -1,0 +1,5 @@
+---
+- name: Provision baremetal2 (special case baremetal)
+  hosts: baremetal2
+  roles:
+    # - onboarding

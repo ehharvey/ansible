@@ -1,0 +1,14 @@
+---
+- name: copy file
+  hosts: baremetal2
+  tasks:
+    - name: Copy win ova
+      ansible.builtin.copy:
+        dest: /home/eharvey/WinDev.ova
+        src: "{{ item }}"
+        owner: eharvey
+        group: eharvey
+      become: True
+      loop:
+        - WinDev2210Eval.ova
+        - Appliance.ova

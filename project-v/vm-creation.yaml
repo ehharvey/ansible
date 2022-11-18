@@ -8,13 +8,15 @@
       ansible.builtin.include_role: 
         name: ../roles/lxdvm
       vars:
-        name: "{{ vm_config.username }}-projectv-dev"
-        memory: 1GB
-        group: "projectv-devs"
-        facts:
-          dev_email: "{{ vm_config.email }}"
-          dev_username: "{{ vm_config.username }}"
-        state: present
+        lxd:
+          name: "{{ vm_config.username }}-projectv-dev"
+          config:
+            limits.memory: 1GB
+          group: "projectv-devs"
+          facts:
+            dev_email: "{{ vm_config.email }}"
+            dev_username: "{{ vm_config.username }}"
+          state: present
       loop: "{{ devs }}"
       loop_control:
         loop_var: vm_config

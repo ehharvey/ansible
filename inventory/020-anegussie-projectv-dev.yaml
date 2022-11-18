@@ -1,0 +1,7 @@
+all:
+  children:
+    projectv-devs:
+      hosts:
+        anegussie-projectv-dev: {}
+  hosts:
+    anegussie-projectv-dev: {}

@@ -4,15 +4,15 @@
   vars:
     ansible_ssh_common_args: "-o StrictHostKeyChecking=no"
   roles:
-    - onboarding
+    - ../roles/onboarding
 
 - name: Provision developer VMs
   hosts: "projectv-devs"
   roles:
-    - role: code-server # Creates user code
+    - role: ../roles/code-server
       vars:
         open_dir: Attendance
-    - role: cloudflare_application
+    - role: ../roles/cloudflare_application
       vars:
         allowed_emails: 
           - "{{ dev_email }}"

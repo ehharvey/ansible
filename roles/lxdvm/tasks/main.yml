@@ -60,20 +60,20 @@
 
   - name: Write new VMs to Ansible Inventory Files
     ansible.builtin.copy:
-      dest: "{{ inventory_dir }}/inventory/020-{{ name }}.yaml"
+      dest: "{{ inventory_dir }}/020-{{ lxd.name }}.yaml"
       content: "{{ inventory_data | to_yaml }}"
     delegate_to: localhost
     vars:
       inventory_data:
         all:
-          hosts: "{{ { name: {} } }}"
+          hosts: "{{ { lxd.name: {} } }}"
           children: >-
             {{
               {
-                group | default(omit): {
+                lxd.group | default(omit): {
                   "hosts":
                   {
-                    name: {}
+                    lxd.name: {}
                   }
                 }
               }
@@ -81,14 +81,14 @@
 
   - name: Write facts to file
     ansible.builtin.copy:
-      dest: "{{ inventory_dir }}/host_vars/{{ name }}.yaml"
-      content: "{{ facts | to_yaml }}"
+      dest: "{{ inventory_dir }}/host_vars/{{ lxd.name }}.yaml"
+      content: "{{ lxd.facts | to_yaml }}"
     delegate_to: localhost
         
       
   - name: Refresh Ansible's inventory
     ansible.builtin.meta: refresh_inventory
-  when: state | lower == 'present'
+  when: lxd.state | lower == 'present'
   rescue:
     - name: Cleanup
       ansible.builtin.import_tasks: "absent.yaml"

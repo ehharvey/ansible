@@ -1,0 +1,25 @@
+---
+- name: Install tigervnc
+
+# Install tigervnc-standaloneserver
+
+# Install xfce4 xfce4-goodies
+
+# Create systemd service
+
+# [Unit]
+# Description=Remote desktop service (VNC)
+# After=syslog.target network.target
+
+# [Service]
+# Type=forking
+# User=eharvey
+
+# ExecStartPre=/usr/bin/vncserver -kill :1
+# ExecStart=/usr/bin/vncserver -SecurityTypes None -localhost no --I-KNOW-THIS-IS-INSECURE :1
+# ExecStop=/usr/bin/vncserver -kill :1
+
+# [Install]
+# WantedBy=multi-user.target
+
+# Open port 22
